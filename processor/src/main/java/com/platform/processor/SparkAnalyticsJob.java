@@ -14,6 +14,7 @@ public class SparkAnalyticsJob {
     public static void main(String[] args) throws Exception {
         SparkSession spark = SparkSession.builder()
                 .appName("FinancialAnalyticsJob")
+                .master("local[*]")
                 .config("spark.cassandra.connection.host", "localhost")
                 .getOrCreate();
 

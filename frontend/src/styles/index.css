@@ -2,44 +2,448 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   GLASSMORPHISM DESIGN SYSTEM
+   Real-Time Event Streaming & Analytics Platform
+   ============================================ */
+
+:root {
+  /* Core Colors */
+  --bg-primary: #0a0d12;
+  --bg-secondary: #0f1318;
+  --glass-bg: rgba(15, 19, 24, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.04);
+
+  /* Accent Colors */
+  --accent-blue: #3b82f6;
+  --accent-cyan: #22d3ee;
+  --accent-purple: #a855f7;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+
+  /* Text Colors */
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Glow Effects */
+  --glow-green: 0 0 20px rgba(16, 185, 129, 0.4);
+  --glow-amber: 0 0 20px rgba(245, 158, 11, 0.4);
+  --glow-red: 0 0 20px rgba(244, 63, 94, 0.4);
+  --glow-blue: 0 0 30px rgba(59, 130, 246, 0.3);
+}
+
 @layer base {
   body {
-    @apply bg-background text-terminal-text;
-    image-rendering: pixelated;
+    @apply antialiased;
+    background: linear-gradient(135deg, #0a0d12 0%, #0f1318 50%, #0d1117 100%);
+    color: var(--text-primary);
+    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+    image-rendering: auto;
+    min-height: 100vh;
+  }
+
+  /* Code/Terminal Typography */
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
   }
 }
 
+@layer components {
+
+  /* Glassmorphism Card */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  .glass-card-sm {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  /* Navigation */
+  .nav-item {
+    @apply relative px-4 py-2 text-sm font-medium transition-all duration-300;
+    color: var(--text-secondary);
+  }
+
+  .nav-item:hover {
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    color: var(--accent-cyan);
+  }
+
+  .nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+    border-radius: 2px;
+    box-shadow: 0 0 10px var(--accent-cyan);
+  }
+
+  /* Status Indicators */
+  .status-dot {
+    @apply relative w-2.5 h-2.5 rounded-full;
+  }
+
+  .status-dot::before {
+    content: '';
+    @apply absolute inset-0 rounded-full animate-ping;
+    opacity: 0.4;
+  }
+
+  .status-dot.healthy {
+    background: var(--accent-emerald);
+    box-shadow: var(--glow-green);
+  }
+
+  .status-dot.healthy::before {
+    background: var(--accent-emerald);
+  }
+
+  .status-dot.initializing {
+    background: var(--accent-amber);
+    box-shadow: var(--glow-amber);
+    animation: pulse-amber 2s ease-in-out infinite;
+  }
+
+  .status-dot.initializing::before {
+    background: var(--accent-amber);
+  }
+
+  .status-dot.down {
+    background: var(--accent-rose);
+    box-shadow: var(--glow-red);
+  }
+
+  .status-dot.down::before {
+    background: var(--accent-rose);
+  }
+
+  /* Metric Cards */
+  .metric-card {
+    @apply glass-card p-5 relative overflow-hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  }
+
+  /* Table Styling */
+  .glass-table {
+    @apply glass-card overflow-hidden;
+  }
+
+  .glass-table th {
+    @apply text-xs font-semibold uppercase tracking-wider px-4 py-3;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .glass-table td {
+    @apply px-4 py-3;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .glass-table tbody tr {
+    transition: background 0.2s ease;
+  }
+
+  .glass-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Button Styles */
+  .btn-glass {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+  }
+
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .btn-glass.active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(34, 211, 238, 0.1));
+    border-color: rgba(59, 130, 246, 0.3);
+    color: var(--accent-cyan);
+  }
+}
+
+@layer utilities {
+
+  /* Shimmer Animation */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.08),
+        transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glow Text */
+  .glow-text {
+    text-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
+  }
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse-amber {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: var(--glow-amber);
+  }
+
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes progress-glow {
+  0% {
+    box-shadow: 0 0 5px var(--accent-cyan), 0 0 10px var(--accent-cyan);
+  }
+
+  50% {
+    box-shadow: 0 0 15px var(--accent-cyan), 0 0 30px var(--accent-blue);
+  }
+
+  100% {
+    box-shadow: 0 0 5px var(--accent-cyan), 0 0 10px var(--accent-cyan);
+  }
+}
+
+/* Animation Classes */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.animate-progress-glow {
+  animation: progress-glow 2s ease-in-out infinite;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-background;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-terminal-header border border-terminal-accent/20;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
-.terminal-window {
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(23, 147, 209, 0.1);
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.scanline {
-  width: 100%;
-  height: 2px;
-  background: rgba(18, 16, 16, 0.1);
-  opacity: 0.75;
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 100;
-  animation: scanline 6s linear infinite;
+/* ============================================
+   PRELOADER SPECIFIC STYLES
+   ============================================ */
+
+.preloader-bg {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+    linear-gradient(135deg, #0a0d12 0%, #0f1318 50%, #0d1117 100%);
 }
 
-@keyframes scanline {
-  0% { top: 0; }
-  100% { top: 100%; }
+.progress-bar-container {
+  @apply relative w-64 h-1 rounded-full overflow-hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
+  transition: width 0.5s ease-out;
+}
+
+.service-step {
+  @apply flex items-center gap-3 text-sm;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+}
+
+.service-step.active {
+  color: var(--text-primary);
+}
+
+.service-step.complete {
+  color: var(--accent-emerald);
+}
+
+.service-step-dot {
+  @apply w-2 h-2 rounded-full;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.service-step.active .service-step-dot {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.service-step.complete .service-step-dot {
+  background: var(--accent-emerald);
+  box-shadow: var(--glow-green);
 }

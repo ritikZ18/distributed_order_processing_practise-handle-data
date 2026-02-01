@@ -4,8 +4,8 @@
 
 echo "🛑 Stopping Platform Services..."
 
-# 1. Kill Java Services
-for pid_file in .producer.pid .processor.pid .api.pid; do
+# 1. Kill Services
+for pid_file in .producer.pid .processor.pid .api.pid .frontend.pid; do
     if [ -f "$pid_file" ]; then
         pid=$(cat "$pid_file")
         echo "Killing process $pid from $pid_file..."

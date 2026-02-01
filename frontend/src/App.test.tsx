@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Since App is a large component, we'll test smaller pieces
 // For now, let's test that the component structure renders correctly
@@ -6,15 +6,16 @@ import { describe, it, expect, vi } from 'vitest';
 describe('App Component', () => {
     // Mock fetch for API calls
     beforeEach(() => {
-        global.fetch = vi.fn().mockImplementation(() =>
+        vi.stubGlobal('fetch', vi.fn().mockImplementation(() =>
             Promise.resolve({
                 ok: true,
                 json: () => Promise.resolve([]),
             })
-        );
+        ));
     });
 
     afterEach(() => {
+        vi.unstubAllGlobals();
         vi.restoreAllMocks();
     });
 

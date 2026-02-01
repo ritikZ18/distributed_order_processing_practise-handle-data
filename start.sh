@@ -114,6 +114,18 @@ else
 fi
 echo "----------------------------------------------------------------"
 echo ""
+
+# Auto-open browser to frontend dashboard
+echo "🌐 Opening Dashboard in browser..."
+sleep 1
+if command -v xdg-open &> /dev/null; then
+    xdg-open "http://localhost:3000" 2>/dev/null &
+elif command -v open &> /dev/null; then
+    open "http://localhost:3000" 2>/dev/null &
+elif command -v start &> /dev/null; then
+    start "http://localhost:3000" 2>/dev/null &
+fi
+
 echo "🚀 Platform is RUNNING. Press Ctrl+C to stop all services."
 echo "================================================================"
 

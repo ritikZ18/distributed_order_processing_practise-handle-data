@@ -15,6 +15,9 @@ public class SparkAnalyticsJob {
         SparkSession spark = SparkSession.builder()
                 .appName("FinancialAnalyticsJob")
                 .master("local[*]")
+                .config("spark.ui.enabled", "false") // Disable UI to avoid servlet conflicts
+                .config("spark.driver.host", "localhost")
+                .config("spark.driver.bindAddress", "127.0.0.1")
                 .config("spark.cassandra.connection.host", "localhost")
                 .getOrCreate();
 

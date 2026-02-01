@@ -19,6 +19,7 @@ This project is a high-throughput event streaming platform built using **Java**,
     *   Producer: `cd producer && mvn spring-boot:run`
     *   Analytics: `cd api && mvn spring-boot:run`
     *   Processor: `cd processor && mvn exec:java`
+    *   Frontend: `cd frontend && npm install && npm run dev`
 
 For more details, see [Architecture](docs/architecture.md) and [Setup Guide](docs/setup.md).
 

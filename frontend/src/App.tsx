@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Terminal, Activity, Server, Database, Cpu, Zap,
     Radio, HardDrive, Clock, TrendingUp, AlertCircle, CheckCircle,
-    LayoutDashboard, Gauge, ChevronRight, ArrowUpRight, ArrowDownRight
+    LayoutDashboard, Gauge, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import Preloader from './components/Preloader';
 

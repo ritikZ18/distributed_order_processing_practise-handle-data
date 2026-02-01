@@ -169,7 +169,6 @@ export default function Preloader({ onComplete }: PreloaderProps) {
                                 {loadingSteps.map((step, index) => {
                                     const isComplete = completedSteps.has(step.id);
                                     const isActive = index === currentStep && !isComplete;
-                                    const isPending = index > currentStep;
 
                                     return (
                                         <motion.div
@@ -182,15 +181,15 @@ export default function Preloader({ onComplete }: PreloaderProps) {
                                             <div className={`service-step-dot ${isActive ? 'animate-pulse' : ''}`} />
 
                                             <div className={`transition-colors duration-300 ${isComplete ? 'text-emerald-400' :
-                                                    isActive ? 'text-cyan-400' :
-                                                        'text-slate-500'
+                                                isActive ? 'text-cyan-400' :
+                                                    'text-slate-500'
                                                 }`}>
                                                 {step.icon}
                                             </div>
 
                                             <span className={`flex-1 text-sm transition-colors duration-300 ${isComplete ? 'text-slate-300' :
-                                                    isActive ? 'text-white' :
-                                                        'text-slate-500'
+                                                isActive ? 'text-white' :
+                                                    'text-slate-500'
                                                 }`}>
                                                 {step.name}
                                             </span>

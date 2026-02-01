@@ -1,6 +1,4 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 // Since App is a large component, we'll test smaller pieces
 // For now, let's test that the component structure renders correctly

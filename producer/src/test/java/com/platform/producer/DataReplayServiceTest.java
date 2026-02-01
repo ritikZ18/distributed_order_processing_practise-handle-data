@@ -70,7 +70,7 @@ class DataReplayServiceTest {
         FinancialTransactionEvent event = (FinancialTransactionEvent) sentEvent;
         assertThat(event.getEventId()).isNotNull();
         assertThat(event.getTransactionId()).isNotNull();
-        assertThat(event.getAmountCents()).isBetween(100, 20100);
+        assertThat(event.getAmountCents()).isBetween(100L, 20100L);
         assertThat(event.getCurrency().toString()).isEqualTo("USD");
         assertThat(event.getMerchantId().toString()).startsWith("zone-");
         assertThat(event.getRegion().toString()).isEqualTo("us-east-1");

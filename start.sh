@@ -24,17 +24,23 @@ cd ..
 echo "⏳ Waiting for Kafka to be ready..."
 while ! nc -z localhost 9092; do sleep 2; done
 
-echo "⏳ Waiting for Cassandra & Keyspace to be ready..."
-while ! docker exec docker-cassandra-1 cqlsh -e "DESCRIBE KEYSPACE analytics" > /dev/null 2>&1; do
-  sleep 3
+echo "⏳ Waiting for Cassandra to be ready..."
+# First wait for Cassandra to accept connections
+until docker exec docker-cassandra-1 cqlsh -e "SELECT now() FROM system.local" > /dev/null 2>&1; do
+  echo "  ...Cassandra is still starting..."
+  sleep 5
 done
-echo "✅ Infrastructure is ready."
+echo "✅ Cassandra is ready. Initializing schema..."
+
+# Now run the init script to create keyspace and tables
+docker exec -i docker-cassandra-1 cqlsh < docker/init.cql
+echo "✅ Schema initialized. Infrastructure is ready."
 
 # 2. Build the Project
 echo "📦 Building project (generating Avro schemas)..."
 mvn clean install -DskipTests
 
-# 3. Start Services in background
+# 3. Start Backend Services
 echo "📡 Starting Kafka Producer..."
 nohup mvn -pl producer spring-boot:run > producer.log 2>&1 &
 echo $! > .producer.pid
@@ -47,7 +53,19 @@ echo "🌐 Starting Analytics API..."
 nohup mvn -pl api spring-boot:run > api.log 2>&1 &
 echo $! > .api.pid
 
-echo "✅ Services started in background."
+# 4. Start Frontend Services (Non-blocking)
+echo "📡 Starting Frontend (Background)..."
+(
+  cd frontend
+  if [ ! -d "node_modules" ]; then
+    echo "📦 Installing frontend dependencies..."
+    npm install > frontend_install.log 2>&1
+  fi
+  nohup npm run dev > ../frontend.log 2>&1 &
+  echo $! > ../.frontend.pid
+)
+
+echo "✅ All services started in background."
 echo "⏳ Waiting for API to warm up..."
 sleep 20
 
@@ -60,6 +78,7 @@ echo "================================================================"
 echo ""
 echo "🔗 SERVICE LINKS:"
 echo "----------------------------------------------------------------"
+echo "🔹 Frontend Dashboard:      http://localhost:3000"
 echo "🔹 Spark Master (Web UI):   http://localhost:8080"
 echo "🔹 Schema Registry:         http://localhost:8081"
 echo "🔹 Analytics API (Health):  http://localhost:8082/api/v1/analytics/health"

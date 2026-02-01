@@ -21,3 +21,6 @@ This project is a high-throughput event streaming platform built using **Java**,
     *   Processor: `cd processor && mvn exec:java`
 
 For more details, see [Architecture](docs/architecture.md) and [Setup Guide](docs/setup.md).
+
+<img width="2094" height="1616" alt="Screenshot 2026-01-31 185231" src="https://github.com/user-attachments/assets/c3d90de7-dab7-4dca-8818-ec86b1b2d86d" />
+<img width="2094" height="1616" alt="Screenshot 2026-01-31 185207" src="https://github.com/user-attachments/assets/597ddcfc-9eb1-4e75-90fc-936f40da4b5c" />

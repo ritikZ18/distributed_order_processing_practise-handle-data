@@ -38,7 +38,13 @@ interface PlatformMetrics {
 type TabType = 'dashboard' | 'terminal' | 'health';
 
 export default function App() {
-    const [showPreloader, setShowPreloader] = useState(true);
+    const [showPreloader, setShowPreloader] = useState(() => {
+        try {
+            return sessionStorage.getItem('preloaderDone') !== '1';
+        } catch {
+            return true;
+        }
+    });
     const [activeTab, setActiveTab] = useState<TabType>('dashboard');
     const [lines, setLines] = useState<string[]>([]);
     const [command, setCommand] = useState('');
@@ -80,7 +86,12 @@ export default function App() {
             const producerStart = Date.now();
             const res = await fetch('/producer/actuator/health');
             const latency = Date.now() - producerStart;
-            if (res.ok) {
+            if (!res.ok) {
+                setMetrics(prev => ({
+                    ...prev,
+                    producer: { status: 'down', latency, details: `HTTP ${res.status}` }
+                }));
+            } else {
                 const data = await res.json();
                 setMetrics(prev => ({
                     ...prev,
@@ -89,6 +100,23 @@ export default function App() {
             }
         } catch {
             setMetrics(prev => ({ ...prev, producer: { status: 'down', details: 'Offline' } }));
+        }
+
+        // Optional: display producer "log-like" signal (last sent + total sent)
+        try {
+            const res = await fetch('/producer/api/v1/producer/stats');
+            if (res.ok) {
+                const stats = await res.json();
+                setMetrics(prev => ({
+                    ...prev,
+                    producer: {
+                        ...prev.producer,
+                        details: `sent=${stats.totalEventsSent}${stats.lastEventSentAt ? ` last=${new Date(stats.lastEventSentAt).toLocaleTimeString()}` : ''}`
+                    }
+                }));
+            }
+        } catch {
+            // ignore
         }
 
         try {
@@ -106,6 +134,8 @@ export default function App() {
                         cassandra: { status: 'up', details: `${data.length} windows` }
                     };
                 });
+            } else {
+                setMetrics(prev => ({ ...prev, cassandra: { status: 'down', details: `HTTP ${res.status}` } }));
             }
         } catch {
             setMetrics(prev => ({ ...prev, cassandra: { status: 'down', details: 'No data' } }));
@@ -143,6 +173,9 @@ export default function App() {
             `Events/sec: ~${metrics.eventsPerSecond}`,
             `API Latency: ${metrics.api.latency || 'N/A'}ms`,
         ]),
+        'producer': () => addLines([
+            `Producer: ${metrics.producer.status.toUpperCase()}${metrics.producer.details ? ` (${metrics.producer.details})` : ''}`,
+        ]),
         'neofetch': () => addLines([
             '                  -`                    swamizero@platform',
             '                 .o+`                   ──────────────────',
@@ -152,7 +185,15 @@ export default function App() {
             '              -+oooooo+:                Throughput: ' + metrics.eventsPerSecond + ' evt/s',
             '            `/:-:++oooo+:               Latency: ' + (metrics.api.latency || '?') + 'ms',
         ]),
-        'help': () => addLines(['Commands: whoami, ls services/, stats, neofetch, clear']),
+        'help': () => addLines([
+            'Commands:',
+            '  whoami',
+            '  ls services/   (aliases: services, status, ls services)',
+            '  stats',
+            '  producer       (shows producer status)',
+            '  neofetch',
+            '  clear',
+        ]),
         'clear': () => setLines([])
     };
 
@@ -182,10 +223,22 @@ export default function App() {
 
     const handleCommand = (e: React.FormEvent) => {
         e.preventDefault();
-        const cmd = command.trim().toLowerCase();
-        addLines([`$ ${command}`]);
-        if (commands[cmd]) commands[cmd]();
-        else if (cmd !== '') addLines([`command not found: ${command}`]);
+        const raw = command.trim();
+        const normalized = raw.toLowerCase().replace(/\s+/g, ' ');
+        addLines([`$ ${raw}`]);
+
+        // Aliases / forgiving inputs
+        const alias: Record<string, string> = {
+            'ls services': 'ls services/',
+            'ls services/': 'ls services/',
+            'services': 'ls services/',
+            'status': 'ls services/',
+            '?': 'help',
+        };
+
+        const resolved = alias[normalized] ?? normalized;
+        if (commands[resolved]) commands[resolved]();
+        else if (normalized !== '') addLines([`command not found: ${raw}`, `try: help`]);
         setCommand('');
     };
 
@@ -196,7 +249,10 @@ export default function App() {
     const trendIsPositive = parseFloat(transactionTrend) >= 0;
 
     if (showPreloader) {
-        return <Preloader onComplete={() => setShowPreloader(false)} />;
+        return <Preloader onComplete={() => {
+            try { sessionStorage.setItem('preloaderDone', '1'); } catch { /* ignore */ }
+            setShowPreloader(false);
+        }} />;
     }
 
     return (
@@ -373,19 +429,22 @@ export default function App() {
                             <div ref={scrollRef} className="p-4 overflow-y-auto font-mono text-sm"
                                 style={{ height: 'calc(100% - 50px)' }}>
                                 <div className="space-y-1">
-                                    {lines.map((line, idx) => (
+                                    {lines.map((line, idx) => {
+                                        const safeLine = typeof line === 'string' ? line : '';
+                                        return (
                                         <div key={idx} className="whitespace-pre-wrap leading-relaxed">
-                                            {line.startsWith('$') ? (
-                                                <span className="text-cyan-400">{line}</span>
-                                            ) : line.includes('🟢') ? (
-                                                <span className="text-emerald-400">{line}</span>
-                                            ) : line.includes('🔴') ? (
-                                                <span className="text-rose-400">{line}</span>
+                                            {safeLine.startsWith('$') ? (
+                                                <span className="text-cyan-400">{safeLine}</span>
+                                            ) : safeLine.includes('🟢') ? (
+                                                <span className="text-emerald-400">{safeLine}</span>
+                                            ) : safeLine.includes('🔴') ? (
+                                                <span className="text-rose-400">{safeLine}</span>
                                             ) : (
-                                                <span className="text-slate-300">{line}</span>
+                                                <span className="text-slate-300">{safeLine}</span>
                                             )}
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                     {!isTyping && (
                                         <form onSubmit={handleCommand} className="flex items-center gap-2 mt-2">
                                             <span className="text-cyan-400">$</span>

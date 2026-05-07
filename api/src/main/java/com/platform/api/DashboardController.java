@@ -17,7 +17,7 @@ public class DashboardController {
     private final AggregateRepository repository;
 
     @GetMapping("/merchant/{id}")
-    @Cacheable(value = "merchantStats", key = "#id")
+    @Cacheable(value = "merchantStats", key = "#root.args[0]")
     public List<MerchantAggregate> getMerchantStats(@PathVariable("id") String id) {
         return repository.findByMerchantId(id);
     }

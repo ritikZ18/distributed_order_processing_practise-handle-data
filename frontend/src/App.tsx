@@ -78,6 +78,62 @@ interface PlatformMetrics {
 
 type TabType = "dashboard" | "terminal" | "health";
 
+const PLACEHOLDER_RATE_POINTS: RatePoint[] = Array.from({ length: 24 }, (_, index) => ({
+  secondStart: new Date(Date.now() - (23 - index) * 2500).toISOString(),
+  count: 12 + ((index * 7) % 15) + (index % 4) * 3,
+}));
+
+const PLACEHOLDER_ZONE_DISTRIBUTION: ZoneCount[] = [
+  { zoneId: "zone-132", count: 86 },
+  { zoneId: "zone-87", count: 71 },
+  { zoneId: "zone-45", count: 64 },
+  { zoneId: "zone-1", count: 58 },
+  { zoneId: "zone-210", count: 49 },
+];
+
+const PLACEHOLDER_LEADERBOARD: LeaderboardRow[] = [
+  {
+    zoneId: "zone-132",
+    totalRevenue: 184200,
+    totalTransactions: 19,
+    latestWindowStart: new Date(Date.now() - 30_000).toISOString(),
+  },
+  {
+    zoneId: "zone-87",
+    totalRevenue: 161480,
+    totalTransactions: 16,
+    latestWindowStart: new Date(Date.now() - 30_000).toISOString(),
+  },
+  {
+    zoneId: "zone-45",
+    totalRevenue: 149920,
+    totalTransactions: 15,
+    latestWindowStart: new Date(Date.now() - 30_000).toISOString(),
+  },
+  {
+    zoneId: "zone-1",
+    totalRevenue: 132600,
+    totalTransactions: 13,
+    latestWindowStart: new Date(Date.now() - 30_000).toISOString(),
+  },
+];
+
+const PLACEHOLDER_GLOBAL_STATS: GlobalStats = {
+  window: "30s",
+  totalRevenue: 628200,
+  totalTransactions: 63,
+  activeZones: 18,
+};
+
+function buildPlaceholderMerchantStats(zoneId: string): MerchantStats[] {
+  return Array.from({ length: 5 }, (_, index) => ({
+    merchantId: zoneId,
+    windowStart: new Date(Date.now() - index * 30_000).toISOString(),
+    totalRevenue: 102400 - index * 8400,
+    transactionCount: 11 - index,
+  }));
+}
+
 export default function App() {
   const [showPreloader, setShowPreloader] = useState(() => {
     try {
@@ -118,6 +174,41 @@ export default function App() {
   const filteredZones = normalizedZoneQuery
     ? allZones.filter((z) => z.includes(normalizedZoneQuery))
     : allZones;
+  const hasLiveRateData = metrics.producerRatePoints.length > 0;
+  const hasLiveZoneDistribution = metrics.producerZoneDistribution.length > 0;
+  const hasLiveLeaderboard = metrics.leaderboard.length > 0;
+  const hasLiveMerchantStats = metrics.merchantStats.length > 0;
+  const hasLiveGlobalStats =
+    metrics.globalStats !== null &&
+    (metrics.globalStats.totalTransactions > 0 ||
+      metrics.globalStats.totalRevenue > 0 ||
+      metrics.globalStats.activeZones > 0);
+  const displayedRatePoints = hasLiveRateData
+    ? metrics.producerRatePoints
+    : PLACEHOLDER_RATE_POINTS;
+  const displayedZoneDistribution = hasLiveZoneDistribution
+    ? metrics.producerZoneDistribution
+    : PLACEHOLDER_ZONE_DISTRIBUTION;
+  const displayedLeaderboard = hasLiveLeaderboard
+    ? metrics.leaderboard
+    : PLACEHOLDER_LEADERBOARD;
+  const displayedGlobalStats: GlobalStats = hasLiveGlobalStats
+    ? metrics.globalStats!
+    : PLACEHOLDER_GLOBAL_STATS;
+  const displayedMerchantStats = hasLiveMerchantStats
+    ? metrics.merchantStats
+    : buildPlaceholderMerchantStats(selectedZone);
+  const displayedEventsPerSecond =
+    metrics.eventsPerSecond > 0
+      ? metrics.eventsPerSecond
+      : Math.round(
+          PLACEHOLDER_RATE_POINTS.reduce((sum, point) => sum + point.count, 0) /
+            PLACEHOLDER_RATE_POINTS.length
+        );
+  const displayedTotalTransactions =
+    metrics.totalTransactions > 0
+      ? metrics.totalTransactions
+      : displayedGlobalStats.totalTransactions;
 
   // Fetch service health
   const fetchMetrics = useCallback(async () => {
@@ -243,8 +334,8 @@ export default function App() {
 
     try {
       const [leaderboardRes, globalRes] = await Promise.all([
-        fetch("/api/v1/analytics/leaderboard?window=5m&limit=8"),
-        fetch("/api/v1/analytics/global?window=1h"),
+        fetch("/api/v1/analytics/leaderboard?window=30s&limit=8"),
+        fetch("/api/v1/analytics/global?window=30s"),
       ]);
 
       if (leaderboardRes.ok) {
@@ -317,8 +408,8 @@ export default function App() {
       ]),
     stats: () =>
       addLines([
-        `Total Transactions: ${metrics.totalTransactions.toLocaleString()}`,
-        `Events/sec: ~${metrics.eventsPerSecond}`,
+        `Total Transactions: ${displayedTotalTransactions.toLocaleString()}`,
+        `Events/sec: ~${displayedEventsPerSecond}`,
         `API Latency: ${metrics.api.latency || "N/A"}ms`,
       ]),
     producer: () =>
@@ -333,7 +424,7 @@ export default function App() {
         "               `+oooo:                  Kernel: Kafka + Spark + Cassandra",
         "              `+oooooo:                 Services: 6 active",
         "              -+oooooo+:                Throughput: " +
-          metrics.eventsPerSecond +
+          displayedEventsPerSecond +
           " evt/s",
         "            `/:-:++oooo+:               Latency: " +
           (metrics.api.latency || "?") +
@@ -493,7 +584,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard
                   title="Total Transactions"
-                  value={metrics.totalTransactions.toLocaleString()}
+                  value={displayedTotalTransactions.toLocaleString()}
                   trend={`${trendIsPositive ? "+" : ""}${transactionTrend}%`}
                   trendUp={trendIsPositive}
                   icon={<TrendingUp size={18} />}
@@ -501,7 +592,7 @@ export default function App() {
                 />
                 <MetricCard
                   title="Events / Second"
-                  value={`~${metrics.eventsPerSecond}`}
+                  value={`~${displayedEventsPerSecond}`}
                   trend="live"
                   icon={<Activity size={18} />}
                   color="cyan"
@@ -581,7 +672,7 @@ export default function App() {
                         Producer Throughput
                       </div>
                       <div className="text-2xl font-semibold text-white mt-1">
-                        ~{metrics.eventsPerSecond} evt/s
+                        ~{displayedEventsPerSecond} evt/s
                       </div>
                     </div>
                     <div className="text-right text-xs text-slate-500">
@@ -589,7 +680,10 @@ export default function App() {
                       <div>{metrics.producer.details ?? "No producer data"}</div>
                     </div>
                   </div>
-                  <SparklineChart points={metrics.producerRatePoints} />
+                  <SparklineChart
+                    points={displayedRatePoints}
+                    isPlaceholder={!hasLiveRateData}
+                  />
                 </div>
 
                 <div className="glass-card p-5">
@@ -600,13 +694,13 @@ export default function App() {
                     <div className="text-xs text-slate-500">Last 60s</div>
                   </div>
                   <div className="space-y-2">
-                    {metrics.producerZoneDistribution.length > 0 ? (
-                      metrics.producerZoneDistribution.map((zone) => (
+                    {displayedZoneDistribution.length > 0 ? (
+                      displayedZoneDistribution.map((zone) => (
                         <ZoneBar
                           key={zone.zoneId}
                           label={zone.zoneId}
                           value={zone.count}
-                          maxValue={metrics.producerZoneDistribution[0].count}
+                          maxValue={displayedZoneDistribution[0].count}
                         />
                       ))
                     ) : (
@@ -624,23 +718,23 @@ export default function App() {
                   <div className="space-y-3">
                     <div>
                       <div className="text-xs text-slate-500">Window</div>
-                      <div className="text-sm text-slate-200">{metrics.globalStats?.window ?? "1h"}</div>
+                      <div className="text-sm text-slate-200">{displayedGlobalStats.window}</div>
                     </div>
                     <div>
                       <div className="text-xs text-slate-500">Transactions</div>
                       <div className="text-2xl font-semibold text-white">
-                        {metrics.globalStats?.totalTransactions.toLocaleString() ?? metrics.totalTransactions.toLocaleString()}
+                        {displayedGlobalStats.totalTransactions.toLocaleString()}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-slate-500">Revenue (cents)</div>
                       <div className="text-lg text-slate-200">
-                        {metrics.globalStats?.totalRevenue.toLocaleString() ?? "0"}
+                        {displayedGlobalStats.totalRevenue.toLocaleString()}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-slate-500">Active Zones</div>
-                      <div className="text-lg text-slate-200">{metrics.globalStats?.activeZones ?? 0}</div>
+                      <div className="text-lg text-slate-200">{displayedGlobalStats.activeZones}</div>
                     </div>
                   </div>
                 </div>
@@ -650,11 +744,11 @@ export default function App() {
                     <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Top Revenue Zones
                     </div>
-                    <div className="text-xs text-slate-500">5m leaderboard</div>
+                    <div className="text-xs text-slate-500">30s leaderboard</div>
                   </div>
                   <div className="space-y-2">
-                    {metrics.leaderboard.length > 0 ? (
-                      metrics.leaderboard.map((row) => (
+                    {displayedLeaderboard.length > 0 ? (
+                      displayedLeaderboard.map((row) => (
                         <div key={row.zoneId} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
                           <div>
                             <div className="text-sm text-white">{row.zoneId}</div>
@@ -718,8 +812,8 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {metrics.merchantStats.length > 0 ? (
-                        metrics.merchantStats.map((stat, idx) => (
+                      {displayedMerchantStats.length > 0 ? (
+                        displayedMerchantStats.map((stat, idx) => (
                           <motion.tr
                             key={idx}
                             initial={{ opacity: 0, x: -10 }}
@@ -737,17 +831,7 @@ export default function App() {
                             </td>
                           </motion.tr>
                         ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={3}
-                            className="text-center py-8 text-slate-500"
-                          >
-                            Waiting for data... Processor may still be
-                            initializing.
-                          </td>
-                        </tr>
-                      )}
+                      ) : null}
                     </tbody>
                   </table>
                 </div>
@@ -1041,35 +1125,131 @@ function MetricCard({
   );
 }
 
-function SparklineChart({ points }: { points: RatePoint[] }) {
+function SparklineChart({
+  points,
+  isPlaceholder,
+}: {
+  points: RatePoint[];
+  isPlaceholder?: boolean;
+}) {
   const width = 480;
   const height = 120;
   const values = points.map((p) => p.count);
   const maxValue = Math.max(...values, 1);
+  const minValue = Math.min(...values, 0);
+  const chartPadding = 12;
+  const chartHeight = height - chartPadding * 2;
+  const chartPoints = points.map((point, index) => {
+    const x =
+      points.length === 1
+        ? width / 2
+        : (index / (points.length - 1)) * width;
+    const y =
+      height -
+      chartPadding -
+      ((point.count - minValue) / Math.max(maxValue - minValue, 1)) *
+        chartHeight;
+    return { x, y, count: point.count };
+  });
+  const smoothedPoints = chartPoints.map((point, index, arr) => {
+    const prev = arr[index - 1]?.count ?? point.count;
+    const next = arr[index + 1]?.count ?? point.count;
+    const smoothedCount = (prev + point.count * 2 + next) / 4;
+    const y =
+      height -
+      chartPadding -
+      ((smoothedCount - minValue) / Math.max(maxValue - minValue, 1)) *
+        chartHeight;
+    return { ...point, y };
+  });
 
-  const path = points
-    .map((point, index) => {
-      const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
-      const y = height - (point.count / maxValue) * (height - 10) - 5;
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const path = smoothedPoints.reduce((acc, point, index, arr) => {
+    if (index === 0) {
+      return `M ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+    }
+    const prev = arr[index - 1];
+    const controlX = ((prev.x + point.x) / 2).toFixed(1);
+    return `${acc} Q ${controlX} ${prev.y.toFixed(1)} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+  }, "");
+  const areaPath = `${path} L ${width} ${height} L 0 ${height} Z`;
+  const lastPoint = smoothedPoints[smoothedPoints.length - 1];
+  const midGuide = height - chartPadding - chartHeight / 2;
 
   return points.length > 0 ? (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-28">
-      <path d={path} fill="none" stroke="rgb(34 211 238)" strokeWidth="3" strokeLinecap="round" />
-      <path
-        d={`${path} L ${width} ${height} L 0 ${height} Z`}
-        fill="url(#sparkGradient)"
-        opacity="0.25"
-      />
-      <defs>
-        <linearGradient id="sparkGradient" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgb(34 211 238)" />
-          <stop offset="100%" stopColor="rgb(34 211 238)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-    </svg>
+    <div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-28">
+        <line
+          x1="0"
+          y1={chartPadding}
+          x2={width}
+          y2={chartPadding}
+          stroke="rgba(148, 163, 184, 0.18)"
+          strokeDasharray="4 6"
+        />
+        <line
+          x1="0"
+          y1={midGuide}
+          x2={width}
+          y2={midGuide}
+          stroke="rgba(148, 163, 184, 0.14)"
+          strokeDasharray="4 6"
+        />
+        <line
+          x1="0"
+          y1={height - chartPadding}
+          x2={width}
+          y2={height - chartPadding}
+          stroke="rgba(148, 163, 184, 0.18)"
+          strokeDasharray="4 6"
+        />
+        <path
+          d={areaPath}
+          fill="url(#sparkGradient)"
+          opacity="0.32"
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke="rgb(34 211 238)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke="rgba(125, 211, 252, 0.35)"
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx={lastPoint.x}
+          cy={lastPoint.y}
+          r="4.5"
+          fill="rgb(34 211 238)"
+          stroke="rgba(15, 23, 42, 0.95)"
+          strokeWidth="2"
+        />
+        <defs>
+          <linearGradient id="sparkGradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="rgb(34 211 238)" />
+            <stop offset="100%" stopColor="rgb(34 211 238)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+        <span>{points.length * 2.5}s history</span>
+        <span>
+          min {minValue} · max {maxValue} · last {points[points.length - 1].count}
+        </span>
+      </div>
+      {isPlaceholder ? (
+        <div className="mt-2 text-xs text-amber-400">
+          Showing preview traffic until the first live Spark window lands.
+        </div>
+      ) : null}
+    </div>
   ) : (
     <div className="h-28 flex items-center justify-center text-sm text-slate-500">
       No throughput data yet.

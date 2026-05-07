@@ -91,9 +91,9 @@ public class SparkAnalyticsJob {
                 .filter(col("amount_cents").isNotNull());
 
         Dataset<Row> windowedAgg = events
-                .withWatermark("timestamp", "10 minutes")
+                .withWatermark("timestamp", "2 minutes")
                 .groupBy(
-                        window(col("timestamp"), "5 minutes"),
+                        window(col("timestamp"), "30 seconds"),
                         col("merchant_id")
                 )
                 .agg(
@@ -116,7 +116,7 @@ public class SparkAnalyticsJob {
                             .mode("append")
                             .save();
                 })
-                .trigger(Trigger.ProcessingTime("1 minute"))
+                .trigger(Trigger.ProcessingTime("30 seconds"))
                 .start();
 
         query.awaitTermination();

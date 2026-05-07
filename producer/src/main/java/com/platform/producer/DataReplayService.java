@@ -24,6 +24,7 @@ public class DataReplayService {
     private final Random random = new Random();
     private final AtomicLong totalEventsSent = new AtomicLong(0);
     private final AtomicReference<Instant> lastEventSentAt = new AtomicReference<>(null);
+    private final SlidingWindowMetrics slidingWindowMetrics = new SlidingWindowMetrics(60, 263);
     
     private static final String TOPIC = "financial-transactions";
 
@@ -52,7 +53,9 @@ public class DataReplayService {
 
             kafkaTemplate.send(TOPIC, event.getTransactionId().toString(), event);
             totalEventsSent.incrementAndGet();
-            lastEventSentAt.set(Instant.now());
+            Instant sentAt = Instant.now();
+            lastEventSentAt.set(sentAt);
+            slidingWindowMetrics.record(sentAt, event.getMerchantId().toString());
         }
         log.info("Sent transaction burst (3 events)");
     }
@@ -63,5 +66,9 @@ public class DataReplayService {
 
     public Instant getLastEventSentAt() {
         return lastEventSentAt.get();
+    }
+
+    public SlidingWindowMetricsSnapshot getSlidingWindowSnapshot(int windowSeconds) {
+        return slidingWindowMetrics.snapshot(windowSeconds);
     }
 }

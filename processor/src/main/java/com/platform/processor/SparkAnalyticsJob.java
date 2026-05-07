@@ -85,8 +85,8 @@ public class SparkAnalyticsJob {
         Dataset<Row> events = decoded
                 .select(from_avro(col("avro_payload"), FINANCIAL_TXN_EVENT_SCHEMA_JSON).as("data"))
                 .select("data.*")
-                // occurred_at is timestamp-millis; Spark expects seconds for cast(long->timestamp)
-                .withColumn("timestamp", col("occurred_at").divide(lit(1000)).cast("timestamp"))
+                // With logicalType timestamp-millis, Spark decodes this as a TIMESTAMP already.
+                .withColumn("timestamp", col("occurred_at").cast("timestamp"))
                 .filter(col("merchant_id").isNotNull())
                 .filter(col("amount_cents").isNotNull());
 

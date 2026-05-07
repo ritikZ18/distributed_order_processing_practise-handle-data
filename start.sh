@@ -127,6 +127,14 @@ for i in {1..20}; do
   sleep 1
 done
 
+echo "⏳ Waiting for Spark Processor to start..."
+for i in {1..20}; do
+  if [ -f processor.log ] && rg -n "Starting new streaming query|Stream started" processor.log >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
 # 4. Start Frontend Services (Non-blocking)
 echo "📡 Starting Frontend (Background)..."
 (

@@ -1,3 +1,10 @@
+## Prerequisites
+
+- **Docker + Docker Compose v2**: required to run Kafka/Cassandra/Redis/Spark via `docker/docker-compose.yml`.
+  - **WSL2 note**: if you're on WSL2 and see “docker could not be found in this WSL 2 distro”, enable Docker Desktop’s **WSL Integration** for your distro (Docker Desktop → Settings → Resources → WSL Integration).
+- **Java 17** + **Maven**: required for `producer/`, `processor/`, `api/`.
+- **Node.js**: the repo CI uses **Node 18** for `frontend/` (recommended for local dev too).
+
 ## 1. Start Platform (Automated)
 
 The easiest way to start the entire platform is using the provided script:

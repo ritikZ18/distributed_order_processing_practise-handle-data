@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @Slf4j
@@ -20,6 +22,9 @@ public class DataReplayService {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final Random random = new Random();
+    private final AtomicLong totalEventsSent = new AtomicLong(0);
+    private final AtomicReference<Instant> lastEventSentAt = new AtomicReference<>(null);
+    private final SlidingWindowMetrics slidingWindowMetrics = new SlidingWindowMetrics(60, 263);
     
     private static final String TOPIC = "financial-transactions";
 
@@ -47,7 +52,23 @@ public class DataReplayService {
                     .build();
 
             kafkaTemplate.send(TOPIC, event.getTransactionId().toString(), event);
+            totalEventsSent.incrementAndGet();
+            Instant sentAt = Instant.now();
+            lastEventSentAt.set(sentAt);
+            slidingWindowMetrics.record(sentAt, event.getMerchantId().toString());
         }
         log.info("Sent transaction burst (3 events)");
+    }
+
+    public long getTotalEventsSent() {
+        return totalEventsSent.get();
+    }
+
+    public Instant getLastEventSentAt() {
+        return lastEventSentAt.get();
+    }
+
+    public SlidingWindowMetricsSnapshot getSlidingWindowSnapshot(int windowSeconds) {
+        return slidingWindowMetrics.snapshot(windowSeconds);
     }
 }

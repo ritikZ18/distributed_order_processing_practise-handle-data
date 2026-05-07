@@ -77,6 +77,14 @@ interface PlatformMetrics {
 }
 
 type TabType = "dashboard" | "terminal" | "health";
+type AggregateWindow = "30m" | "12h" | "24h" | "7d";
+
+const AGGREGATE_WINDOW_OPTIONS: { value: AggregateWindow; label: string }[] = [
+  { value: "30m", label: "30 min" },
+  { value: "12h", label: "12 hrs" },
+  { value: "24h", label: "24 hrs" },
+  { value: "7d", label: "7 days" },
+];
 
 const PLACEHOLDER_RATE_POINTS: RatePoint[] = Array.from({ length: 24 }, (_, index) => ({
   secondStart: new Date(Date.now() - (23 - index) * 2500).toISOString(),
@@ -144,6 +152,7 @@ export default function App() {
   });
   const [zoneQuery, setZoneQuery] = useState("");
   const [selectedZone, setSelectedZone] = useState("zone-1");
+  const [aggregateWindow, setAggregateWindow] = useState<AggregateWindow>("24h");
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [lines, setLines] = useState<string[]>([]);
   const [command, setCommand] = useState("");
@@ -308,15 +317,20 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/v1/analytics/merchant/${selectedZone}`);
+      const res = await fetch(
+        `/api/v1/analytics/merchant/${selectedZone}?window=${aggregateWindow}&limit=20`
+      );
       if (res.ok) {
         const data: MerchantStats[] = await res.json();
         setMetrics((prev) => {
           setPrevTransactions(prev.totalTransactions);
           return {
             ...prev,
-            merchantStats: data.slice(0, 5),
-            cassandra: { status: "up", details: `${data.length} windows` },
+            merchantStats: data,
+            cassandra: {
+              status: "up",
+              details: `${data.length} rows · ${aggregateWindow}`,
+            },
           };
         });
       } else {
@@ -373,7 +387,7 @@ export default function App() {
           ? { status: "up", details: "Streaming" }
           : { status: "down", details: "No jobs" },
     }));
-  }, [selectedZone]);
+  }, [aggregateWindow, selectedZone]);
 
   useEffect(() => {
     if (!showPreloader) {
@@ -777,9 +791,13 @@ export default function App() {
                   <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Recent Aggregates
                   </h2>
-                  <span className="text-xs text-slate-500">{selectedZone}</span>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span>{selectedZone}</span>
+                    <span>·</span>
+                    <span>{aggregateWindow}</span>
+                  </div>
                 </div>
-                <div className="flex flex-col md:flex-row gap-3 mb-3">
+                <div className="flex flex-col lg:flex-row gap-3 mb-3">
                   <div className="flex-1">
                     <input
                       value={zoneQuery}
@@ -801,6 +819,24 @@ export default function App() {
                       ))}
                     </select>
                   </div>
+                  <div className="md:w-48">
+                    <select
+                      value={aggregateWindow}
+                      onChange={(e) =>
+                        setAggregateWindow(e.target.value as AggregateWindow)
+                      }
+                      className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
+                    >
+                      {AGGREGATE_WINDOW_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="mb-3 text-xs text-slate-500">
+                  Showing latest {displayedMerchantStats.length} rows for {selectedZone} in the selected window.
                 </div>
                 <div className="glass-table">
                   <table className="w-full text-sm">
